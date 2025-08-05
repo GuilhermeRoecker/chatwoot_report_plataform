@@ -5,7 +5,7 @@ const relatorioController = {
     const { cidade } = req.params;
     try {
       const results = await dbpsql.query(
-        "SELECT pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
+        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
         [`%${cidade}%`]
       );
       res.status(200).json(results.rows);
@@ -19,7 +19,7 @@ const relatorioController = {
     const { usuario } = req.params;
     try {
       const results = await dbpsql.query(
-        "SELECT pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.name ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
+        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.name ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
         [`%${usuario}%`]
       );
       res.status(200).json(results.rows);
@@ -35,7 +35,7 @@ const relatorioController = {
     dataInicio = `${dataInicio} 00:00:00`;
     dataFim = `${dataFim} 23:59:59`;
 
-    const query = `SELECT pm.processed_message_content, pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm WHERE pm.created_at BETWEEN $1 AND $2 ORDER BY pm.conversation_id, pm.created_at;`;
+    const query = `SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content, pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.created_at BETWEEN $1 AND $2 ORDER BY pm.conversation_id, pm.created_at;`;
     try {
       const results = await dbpsql.query(query, [dataInicio, dataFim]);
       res.status(200).json(results.rows);
@@ -54,7 +54,7 @@ const relatorioController = {
 
     try {
       const results = await dbpsql.query(
-        "SELECT pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1 AND pc2.name ILIKE $2) AND pm.created_at BETWEEN $3 AND $4 ORDER BY pm.conversation_id, pm.created_at;",
+        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content, pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1 AND pc2.name ILIKE $2) AND pm.created_at BETWEEN $3 AND $4 ORDER BY pm.conversation_id, pm.created_at;",
         [`%${cidade}%`, `%${usuario}%`, dataInicio, dataFim]
       );
       res.status(200).json(results.rows);
