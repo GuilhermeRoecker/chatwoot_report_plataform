@@ -7,7 +7,7 @@ require('dotenv').config()
 app.use(cookieParser());
 app.use(express.json());
 
-const allowlist = ['http://localhost:3000', "http://127.0.0.1:5500"];
+const allowlist = ['http://localhost:3000'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   if (allowlist.indexOf(req.header('Origin')) !== -1) {
@@ -22,7 +22,14 @@ const corsOptionsDelegate = function (req, callback) {
 };
 
 app.use(cors(corsOptionsDelegate));
+app.use(express.static(path.join(__dirname, 'public')));
+
+
+const relatorioRoutes = require('./src/routes/relatorioRoutes');
+app.use('/relatorio', relatorioRoutes);
 
 app.listen(3000, () => {
   console.log('Servidor rodando em http://localhost:3000');
 });
+
+
