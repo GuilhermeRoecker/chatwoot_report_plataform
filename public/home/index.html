@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Softcam - Relatorios Chat</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- COLUNA LATERAL -->
+      <aside class="sidebar">
+        <h2>Filtros</h2>
+
+        <label for="cidade">Cidade:</label>
+        <input type="text" id="cidade" placeholder="Ex: São Paulo/SP" />
+
+        <label for="usuario">Usuário:</label>
+        <input type="text" id="usuario" placeholder="Digite nome do usuário" />
+
+        <label for="data-inicio">Data Início:</label>
+        <input type="date" id="data-inicio" />
+
+        <label for="data-fim">Data Fim:</label>
+        <input type="date" id="data-fim" />
+
+        <div class="filtro-extra">
+          <!-- Espaço reservado para conteúdo futuro -->
+        </div>
+      </aside>
+
+      <!-- ÁREA DO CHAT -->
+      <main class="chat-area">
+        <div class="chat-header">
+          <h2>Chat</h2>
+
+          <div class="chat-header-buttons">
+            <button class="icon-config" title="Configurações">
+              <i class="fa-solid fa-gear"></i>
+            </button>
+
+            <button class="icon-logoff" title="Sair">
+              <i class="fa-solid fa-power-off" style="color: #ffffff"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat">
+          <!-- Mensagens do chat vão aqui -->
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
