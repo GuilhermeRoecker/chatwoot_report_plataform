@@ -174,7 +174,7 @@ function imprimirResumo() {
 
   const qtdConversas = Object.keys(conversasAgrupadas).length;
   let html = `<h2>Resumo do Relatório</h2>`;
-  html += `<p>Conversas encontradas: ${qtdConversas}</p>`;
+  html += `<p>Conversas encontradas: ${qtdConversas}</p> <br>`;
   html += `<ul>`;
 
   for (const [id, msgs] of Object.entries(conversasAgrupadas)) {
@@ -197,11 +197,14 @@ function imprimirCompleto() {
   const printArea = document.createElement("div");
   printArea.className = "print-area";
 
+  const qtdConversas = Object.keys(conversasAgrupadas).length;
   let html = `<h2>Relatório Completo</h2>`;
+  html += `<p>Conversas encontradas: ${qtdConversas}</p> <br>`;
+  html += `<ul>`;
 
   for (const [id, mensagens] of Object.entries(conversasAgrupadas)) {
     const primeira = mensagens[0];
-    html += `<h3>📌 ${formatarData(primeira.created_at)} - ${primeira.sender_name}</h3>`;
+    html += `<h3>${formatarData(primeira.created_at)} - ${primeira.sender_name}</h3>`;
 
     mensagens.forEach(msg => {
       const tipo = msg.sender_type === "Contact" ? "Cliente" : "Suporte";
