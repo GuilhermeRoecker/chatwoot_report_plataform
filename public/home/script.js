@@ -65,13 +65,17 @@ function formatarData(dataStr) {
 
 function mostrarChat(conversationId, mensagens) {
     const chat = document.getElementById("chat");
-    chat.innerHTML = ""; // Limpa o conteúdo antes de exibir
+    chat.innerHTML = "";
 
     mensagens.forEach(msg => {
         const div = document.createElement("div");
         div.classList.add("mensagem");
 
-        if (msg.sender_type === null) {
+        if (msg.private === true) {
+            div.style.backgroundColor = "rgb(89, 74, 5)";
+        }
+
+        if (msg.sender_type === null && msg.message_type === 2) {
             div.classList.add("mensagem-sistema");
             div.textContent = msg.processed_message_content;
 

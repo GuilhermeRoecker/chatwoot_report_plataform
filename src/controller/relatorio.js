@@ -38,7 +38,9 @@ const relatorioController = {
              pm.sender_type,
              pm.sender_id,
              pm.conversation_id,
-             pm.created_at
+             pm.created_at,
+             pm.private,
+             pm.message_type
       FROM public.messages pm
       LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact'
       LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User'
