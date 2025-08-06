@@ -9,15 +9,16 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <!-- Substitua o conteúdo abaixo pela sua logo -->
             <img src="https://www.softcam.com.br/softapp/images/logo.png" alt="Logo" />
         </div>
         <form class="login-form">
             <h2>Entrar</h2>
-            <input type="text" placeholder="Usuário" required>
-            <input type="password" placeholder="Senha" required>
+            <input id="email" type="text" placeholder="Usuário" required>
+            <input id="pass" type="password" placeholder="Senha" required>
             <button type="submit">Login</button>
         </form>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

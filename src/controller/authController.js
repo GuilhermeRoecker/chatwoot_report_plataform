@@ -8,7 +8,7 @@ async function login(req, res) {
   const { email, senha } = req.body;
 
   try {
-    const [rows] = await db.query('SELECT * FROM pessoa WHERE email = ?', [email]);
+    const [rows] = await db.query('SELECT * FROM user WHERE email = ?', [email]);
 
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
@@ -16,7 +16,7 @@ async function login(req, res) {
 
     const user = rows[0];
 
-    const senhaCorreta = await bcrypt.compare(senha, user.senhaHash);
+    const senhaCorreta = await bcrypt.compare(senha, user.senha);
 
     if (!senhaCorreta) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
@@ -25,21 +25,17 @@ async function login(req, res) {
     const token = jwt.sign(
       {
         id: user.id,
-        pessoaId: user.id,
-        nomeCompleto: user.nomeCompleto,
-        email: user.email,
-        tipoPessoa: user.tipoPessoa,
-        empresaId: user.empresaId,
-        cargo: user.cargo
+        name: user.name,
+        type : user.type
+        
       },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    // Envia o token via cookie HTTP only
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       maxAge: 86400000, // 1 dia
       sameSite: 'lax' 
     });
@@ -52,5 +48,7 @@ async function login(req, res) {
     res.status(500).json({ error: 'Erro ao realizar login' });
   }
 }
+
+
 
 module.exports = { login };

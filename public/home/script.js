@@ -1,3 +1,45 @@
+async function verificarAcesso() {
+  let usuario;
+
+  try {
+    const res = await fetch('/auth/me', {
+      credentials: 'include'
+    });
+
+    console.log('📨 Status da resposta:', res.status);
+
+    const dados = await res.json();
+
+    if (!res.ok) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    usuario = dados;
+  } catch (e) {
+    window.location.href = '/login';
+    return false;
+  }
+
+  return true;
+}
+
+function logout() {
+  console.log('🚪 Tentando fazer logout...');
+  fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+    .then((res) => {
+      location.reload();
+    })
+    .catch((err) => {
+      location.reload();
+    });
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  const acessoPermitido = await verificarAcesso();
+  if (!acessoPermitido) return;
+});
+
+
 document.getElementById("btn-buscar").addEventListener("click", async () => {
     const cidade = document.getElementById("cidade").value;
     const usuario = document.getElementById("usuario").value;
@@ -106,3 +148,5 @@ function mostrarChat(conversationId, mensagens) {
 
     chat.scrollTop = chat.scrollHeight;
 }
+
+document.querySelector(".icon-logoff").addEventListener("click", logout);
