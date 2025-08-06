@@ -1,83 +1,32 @@
-async function listByCidade(cidade) {
-    const response = await fetch(
-        `http://localhost:3000/relatorio/cidade/${cidade}`,
-        {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        }
-    );
-    const data = await response.json();
-    return data;
-}
-
-async function listByUsuario(usuario) {
-    const response = await fetch(
-        `http://localhost:3000/relatorio/usuario/${usuario}`,
-        {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        }
-    );
-    const data = await response.json();
-    return data;
-}
-
-async function listByData(dataInicio, dataFim) {
-    const response = await fetch(
-        `http://localhost:3000/relatorio/data/${dataInicio}/${dataFim}`,
-        {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        }
-    );
-    const data = await response.json();
-    return data;
-}
-
-async function listAll(cidade, usuario, dataInicio, dataFim) {
-    const response = await fetch(
-        `http://localhost:3000/relatorio/all/${cidade}/${usuario}/${dataInicio}/${dataFim}`,
-        {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        }
-    );
-    const data = await response.json();
-    return data;    
-    
-}
-
 document.getElementById("btn-buscar").addEventListener("click", async () => {
     const cidade = document.getElementById("cidade").value;
     const usuario = document.getElementById("usuario").value;
     const dataInicio = document.getElementById("data-inicio").value;
     const dataFim = document.getElementById("data-fim").value;
 
-    let resultados = [];
+const queryParams = new URLSearchParams();
+    if (cidade) queryParams.append("cidade", cidade);
+    if (usuario) queryParams.append("usuario", usuario);
+    if (dataInicio && dataFim) {
+        queryParams.append("dataInicio", dataInicio);
+        queryParams.append("dataFim", dataFim);
+    }
 
-    if (cidade && usuario && dataInicio && dataFim) {
-        resultados = await listAll(cidade, usuario, dataInicio, dataFim);
-    } else if (cidade) {
-        resultados = await listByCidade(cidade);
-    } else if (usuario) {
-        resultados = await listByUsuario(usuario);
-    } else if (dataInicio && dataFim) {
-        resultados = await listByData(dataInicio, dataFim);
-    } else {
+    if (!cidade && !usuario && !(dataInicio && dataFim)) {
         alert("Preencha ao menos um filtro.");
         return;
     }
 
+    const response = await fetch(`http://localhost:3000/relatorio?${queryParams.toString()}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        },
+    });
+    const resultados = await response.json();
     exibirConversas(resultados);
 });
+
 
 function exibirConversas(mensagens) {
     const conversasAgrupadas = {};
@@ -116,31 +65,37 @@ function formatarData(dataStr) {
 
 function mostrarChat(conversationId, mensagens) {
     const chat = document.getElementById("chat");
-    chat.innerHTML = `<h3 style="margin-bottom: 15px;">Conversa ID: ${conversationId}</h3>`;
+    chat.innerHTML = ""; // Limpa o conteúdo antes de exibir
 
     mensagens.forEach(msg => {
         const div = document.createElement("div");
         div.classList.add("mensagem");
 
-        if (msg.sender_type === "Contact") {
-            div.classList.add("mensagem-cliente");
+        if (msg.sender_type === null) {
+            div.classList.add("mensagem-sistema");
+            div.textContent = msg.processed_message_content;
+
         } else {
-            div.classList.add("mensagem-suporte");
+            if (msg.sender_type === "Contact") {
+                div.classList.add("mensagem-cliente");
+            } else {
+                div.classList.add("mensagem-suporte");
+            }
+
+            const nome = document.createElement("strong");
+            nome.textContent = `${msg.sender_name}: `;
+
+            const conteudo = document.createElement("span");
+            conteudo.textContent = msg.processed_message_content;
+
+            const data = document.createElement("div");
+            data.classList.add("mensagem-data");
+            data.textContent = formatarData(msg.created_at);
+
+            div.appendChild(nome);
+            div.appendChild(conteudo);
+            div.appendChild(data);
         }
-
-        const nome = document.createElement("strong");
-        nome.textContent = `${msg.sender_name}: `;
-
-        const conteudo = document.createElement("span");
-        conteudo.textContent = msg.processed_message_content;
-
-        const data = document.createElement("div");
-        data.classList.add("mensagem-data");
-        data.textContent = formatarData(msg.created_at);
-
-        div.appendChild(nome);
-        div.appendChild(conteudo);
-        div.appendChild(data);
 
         chat.appendChild(div);
     });

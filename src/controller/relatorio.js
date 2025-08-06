@@ -1,62 +1,58 @@
 const dbpsql = require("../database/dbpsql");
 
 const relatorioController = {
-  getByCidade: async (req, res) => {
-    const { cidade } = req.params;
-    try {
-      const results = await dbpsql.query(
-        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
-        [`%${cidade}%`]
-      );
-      res.status(200).json(results.rows);
-    } catch (error) {
-      console.error("Erro ao buscar relatórios:", error);
-      res.status(500).json({ error: "Erro ao buscar relatórios" });
+  getDynamic: async (req, res) => {
+    const { cidade, usuario, dataInicio, dataFim } = req.query;
+
+    let whereClauses = [];
+    let params = [];
+    let paramIndex = 1;
+
+    if (cidade) {
+      whereClauses.push(`pc2.location ILIKE $${paramIndex}`);
+      params.push(`%${cidade}%`);
+      paramIndex++;
     }
-  },
 
-  getByUsuario: async (req, res) => {
-    const { usuario } = req.params;
-    try {
-      const results = await dbpsql.query(
-        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content,  pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.name ILIKE $1) ORDER BY pm.conversation_id, pm.created_at;",
-        [`%${usuario}%`]
-      );
-      res.status(200).json(results.rows);
-    } catch (error) {
-      console.error("Erro ao buscar relatórios:", error);
-      res.status(500).json({ error: "Erro ao buscar relatórios" });
+    if (usuario) {
+      whereClauses.push(`pc2.name ILIKE $${paramIndex}`);
+      params.push(`%${usuario}%`);
+      paramIndex++;
     }
-  },
 
-  getByData: async (req, res) => {
-    let { dataInicio, dataFim } = req.params;
-
-    dataInicio = `${dataInicio} 00:00:00`;
-    dataFim = `${dataFim} 23:59:59`;
-
-    const query = `SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content, pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.created_at BETWEEN $1 AND $2 ORDER BY pm.conversation_id, pm.created_at;`;
-    try {
-      const results = await dbpsql.query(query, [dataInicio, dataFim]);
-      res.status(200).json(results.rows);
-    } catch (error) {
-      console.error("Erro ao buscar relatórios:", error);
-      res.status(500).json({ error: "Erro ao buscar relatórios" });
+    if (dataInicio && dataFim) {
+      whereClauses.push(`pm2.created_at BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      params.push(`${dataInicio} 00:00:00`);
+      params.push(`${dataFim} 23:59:59`);
+      paramIndex += 2;
     }
-  },
 
-  getByAll: async (req, res) => {
-    const { cidade, usuario} = req.params;
-    let {dataInicio, dataFim } = req.params;
+    let innerWhereSQL = "";
+    if (whereClauses.length > 0) {
+      innerWhereSQL = "WHERE " + whereClauses.join(" AND ");
+    }
 
-    dataInicio = `${dataInicio} 00:00:00`;
-    dataFim = `${dataFim} 23:59:59`;
+    const query = `
+      SELECT COALESCE(pc.name, pu.name) AS sender_name,
+             pm.processed_message_content,
+             pm.sender_type,
+             pm.sender_id,
+             pm.conversation_id,
+             pm.created_at
+      FROM public.messages pm
+      LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact'
+      LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User'
+      WHERE pm.conversation_id IN (
+        SELECT DISTINCT pm2.conversation_id
+        FROM public.messages pm2
+        JOIN public.contacts pc2 ON pc2.id = pm2.sender_id
+        ${innerWhereSQL}
+      )
+      ORDER BY pm.conversation_id, pm.created_at;
+    `;
 
     try {
-      const results = await dbpsql.query(
-        "SELECT COALESCE(pc.name, pu.name) AS sender_name, pm.processed_message_content, pm.sender_type, pm.sender_id, pm.conversation_id, pm.created_at FROM public.messages pm LEFT JOIN public.contacts pc ON pc.id = pm.sender_id AND pm.sender_type = 'Contact' LEFT JOIN public.users pu ON pu.id = pm.sender_id AND pm.sender_type = 'User' WHERE pm.conversation_id IN (SELECT DISTINCT pm2.conversation_id FROM public.messages pm2 JOIN public.contacts pc2 ON pc2.id = pm2.sender_id WHERE pc2.location ILIKE $1 AND pc2.name ILIKE $2) AND pm.created_at BETWEEN $3 AND $4 ORDER BY pm.conversation_id, pm.created_at;",
-        [`%${cidade}%`, `%${usuario}%`, dataInicio, dataFim]
-      );
+      const results = await dbpsql.query(query, params);
       res.status(200).json(results.rows);
     } catch (error) {
       console.error("Erro ao buscar relatórios:", error);

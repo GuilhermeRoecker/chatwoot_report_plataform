@@ -26,7 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 const relatorioRoutes = require('./src/routes/relatorioRoutes');
-app.use('/relatorio', relatorioRoutes);
+app.use('/', relatorioRoutes);
 
 app.listen(3000, () => {
   console.log('Servidor rodando em http://localhost:3000');
