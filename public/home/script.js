@@ -103,8 +103,14 @@ function exibirConversas(mensagens) {
 }
 
 function formatarData(dataStr) {
-    const data = new Date(dataStr);
-    return data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const dataUtc = new Date(dataStr);
+
+  const dataCorrigida = new Date(dataUtc.getTime() - 3 * 60 * 60 * 1000);
+
+  return dataCorrigida.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
 }
 
 function mostrarChat(conversationId, mensagens) {
@@ -174,7 +180,6 @@ function imprimirResumo() {
   const dataFim = window.filtroDataFim || "";
 
   let html = `<h2 style="margin-bottom: 5px;">Resumo do Relatório</h2>`;
-  html += `<p style="margin: 0;">Data de fim: <strong>${dataFim}</strong></p>`;
   html += `<p style="margin: 5px 0 10px;">Conversas encontradas: <strong>${qtdConversas}</strong></p>`;
 
   html += `<table style="width: 100%; border-collapse: collapse; font-size: 14px;">`;
