@@ -165,49 +165,74 @@ function agruparConversas(mensagens) {
   return agrupadas;
 }
 
-
 function imprimirResumo() {
   const conversasAgrupadas = agruparConversas(window.conversasCompletas);
-
   const printArea = document.createElement("div");
   printArea.className = "print-area";
 
   const qtdConversas = Object.keys(conversasAgrupadas).length;
-  let html = `<h2>Resumo do Relatório</h2>`;
-  html += `<p>Conversas encontradas: ${qtdConversas}</p> <br>`;
-  html += `<ul>`;
+  const dataFim = window.filtroDataFim || "";
+
+  let html = `<h2 style="margin-bottom: 5px;">Resumo do Relatório</h2>`;
+  html += `<p style="margin: 0;">Data de fim: <strong>${dataFim}</strong></p>`;
+  html += `<p style="margin: 5px 0 10px;">Conversas encontradas: <strong>${qtdConversas}</strong></p>`;
+
+  html += `<table style="width: 100%; border-collapse: collapse; font-size: 14px;">`;
+  html += `
+    <thead>
+      <tr style="background-color: #333; color: #fff;">
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Solicitante</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Atendente</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Início</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Fim</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
 
   for (const [id, msgs] of Object.entries(conversasAgrupadas)) {
     const primeira = msgs[0];
-    html += `<li>${formatarData(primeira.created_at)} - ${primeira.sender_name}</li>`;
+    const ultima = msgs[msgs.length - 1];
+    const solicitante = primeira.sender_type === "Contact" ? primeira.sender_name : "";
+    const atendente = msgs.find(m => m.sender_type === "User");
+
+    html += `
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ccc;">${solicitante}</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">${atendente?.sender_name || "-"}</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">${formatarData(primeira.created_at)}</td>
+        <td style="padding: 8px; border: 1px solid #ccc;">${formatarData(ultima.created_at)}</td>
+      </tr>
+    `;
   }
 
-  html += `</ul>`;
+  html += `</tbody></table>`;
 
   printArea.innerHTML = html;
-
   document.body.appendChild(printArea);
   window.print();
   printArea.remove();
 }
 
+
 function imprimirCompleto() {
   const conversasAgrupadas = agruparConversas(window.conversasCompletas);
-
   const printArea = document.createElement("div");
   printArea.className = "print-area";
 
-  const qtdConversas = Object.keys(conversasAgrupadas).length;
   let html = `<h2>Relatório Completo</h2>`;
-  html += `<p>Conversas encontradas: ${qtdConversas}</p> <br>`;
-  html += `<ul>`;
+  html += `<p>Conversas encontradas: ${Object.keys(conversasAgrupadas).length}</p><br>`;
 
   for (const [id, mensagens] of Object.entries(conversasAgrupadas)) {
     const primeira = mensagens[0];
-    html += `<h3>${formatarData(primeira.created_at)} - ${primeira.sender_name}</h3>`;
+    const solicitante = primeira.sender_type === "Contact" ? primeira.sender_name : "";
+    const atendente = mensagens.find(m => m.sender_type === "User");
+
+    html += `<h3>${formatarData(primeira.created_at)} - ${solicitante}</h3>`;
+    html += `<p><strong>Atendente:</strong> ${atendente?.sender_name || "-"}</p>`;
 
     mensagens.forEach(msg => {
-      const tipo = msg.sender_type === "Contact" ? "Cliente" : "Suporte";
+      const tipo = msg.sender_type === "Contact" ? "Cliente" : (msg.sender_type === "User" ? "Suporte" : "Sistema");
       const conteudo = msg.processed_message_content || "";
       const data = formatarData(msg.created_at);
 
@@ -219,16 +244,14 @@ function imprimirCompleto() {
       `;
     });
 
-    html += `<hr />`;
+    html += `<div style="page-break-after: always;"></div>`;
   }
 
   printArea.innerHTML = html;
-
   document.body.appendChild(printArea);
   window.print();
   printArea.remove();
 }
-
 
 document.getElementById("btn-imprimir-resumo").addEventListener("click", imprimirResumo);
 document.getElementById("btn-imprimir-completo").addEventListener("click", imprimirCompleto);
