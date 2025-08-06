@@ -159,3 +159,59 @@ body {
 .chat-input button:hover {
     background-color: #0056b3;
 }
+
+#lista-conversas {
+  list-style: none;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+#lista-conversas li {
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+.mensagem {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  max-width: 70%;
+  word-wrap: break-word;
+  position: relative;
+  display: inline-block;
+  clear: both;
+}
+
+.mensagem-cliente {
+  background-color: #2c2f33;
+  color: #f1f1f1;
+  float: left;
+  align-self: flex-start;
+  text-align: left;
+}
+
+.mensagem-suporte {
+  background-color: #4b5563;
+  color: #f1f1f1;
+  float: right;
+  align-self: flex-end;
+  text-align: right;
+}
+
+.mensagem-data {
+  font-size: 0.75em;
+  color: #bbb;
+  margin-top: 4px;
+  display: block;
+  clear: both;
+}
+
+#chat {
+  background-color: #1e1e1e;
+  padding: 20px;
+  color: white;
+  height: 100%;
+  overflow-y: auto;
+}
