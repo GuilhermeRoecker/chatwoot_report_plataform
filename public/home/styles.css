@@ -98,7 +98,7 @@ body {
   background-color: #cc0000;
 }
 
-.icon-config {
+.icon-add-user {
   background-color: #ffffff;
   border: 1px solid #ffffff;
   color: #000000;
@@ -112,7 +112,7 @@ body {
   transition: background-color 0.3s;
 }
 
-.icon-config:hover {
+.icon-add-user:hover {
   background-color: #e6e6e6;
 }
 
@@ -227,3 +227,20 @@ body {
   clear: both;
 }
 
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

@@ -6,8 +6,6 @@ async function verificarAcesso() {
       credentials: 'include'
     });
 
-    console.log('📨 Status da resposta:', res.status);
-
     const dados = await res.json();
 
     if (!res.ok) {
@@ -24,7 +22,6 @@ async function verificarAcesso() {
 }
 
 function logout() {
-  console.log('🚪 Tentando fazer logout...');
   fetch('/auth/logout', { method: 'POST', credentials: 'include' })
     .then((res) => {
       location.reload();
@@ -32,6 +29,10 @@ function logout() {
     .catch((err) => {
       location.reload();
     });
+}
+
+function users(){
+    window.location.href = '/users';
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -66,6 +67,7 @@ const queryParams = new URLSearchParams();
         },
     });
     const resultados = await response.json();
+    window.conversasCompletas = resultados;
     exibirConversas(resultados);
 });
 
@@ -150,3 +152,80 @@ function mostrarChat(conversationId, mensagens) {
 }
 
 document.querySelector(".icon-logoff").addEventListener("click", logout);
+document.querySelector(".icon-add-user").addEventListener("click", users);
+
+function agruparConversas(mensagens) {
+  const agrupadas = {};
+  mensagens.forEach(msg => {
+    if (!agrupadas[msg.conversation_id]) {
+      agrupadas[msg.conversation_id] = [];
+    }
+    agrupadas[msg.conversation_id].push(msg);
+  });
+  return agrupadas;
+}
+
+
+function imprimirResumo() {
+  const conversasAgrupadas = agruparConversas(window.conversasCompletas);
+
+  const printArea = document.createElement("div");
+  printArea.className = "print-area";
+
+  const qtdConversas = Object.keys(conversasAgrupadas).length;
+  let html = `<h2>Resumo do Relatório</h2>`;
+  html += `<p>Conversas encontradas: ${qtdConversas}</p>`;
+  html += `<ul>`;
+
+  for (const [id, msgs] of Object.entries(conversasAgrupadas)) {
+    const primeira = msgs[0];
+    html += `<li>${formatarData(primeira.created_at)} - ${primeira.sender_name}</li>`;
+  }
+
+  html += `</ul>`;
+
+  printArea.innerHTML = html;
+
+  document.body.appendChild(printArea);
+  window.print();
+  printArea.remove();
+}
+
+function imprimirCompleto() {
+  const conversasAgrupadas = agruparConversas(window.conversasCompletas);
+
+  const printArea = document.createElement("div");
+  printArea.className = "print-area";
+
+  let html = `<h2>Relatório Completo</h2>`;
+
+  for (const [id, mensagens] of Object.entries(conversasAgrupadas)) {
+    const primeira = mensagens[0];
+    html += `<h3>📌 ${formatarData(primeira.created_at)} - ${primeira.sender_name}</h3>`;
+
+    mensagens.forEach(msg => {
+      const tipo = msg.sender_type === "Contact" ? "Cliente" : "Suporte";
+      const conteudo = msg.processed_message_content || "";
+      const data = formatarData(msg.created_at);
+
+      html += `
+        <div style="margin-bottom: 10px;">
+          <strong>${msg.sender_name} (${tipo})</strong>: ${conteudo}
+          <div style="font-size: 0.8em; color: gray;">${data}</div>
+        </div>
+      `;
+    });
+
+    html += `<hr />`;
+  }
+
+  printArea.innerHTML = html;
+
+  document.body.appendChild(printArea);
+  window.print();
+  printArea.remove();
+}
+
+
+document.getElementById("btn-imprimir-resumo").addEventListener("click", imprimirResumo);
+document.getElementById("btn-imprimir-completo").addEventListener("click", imprimirCompleto);

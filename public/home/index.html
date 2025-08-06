@@ -16,10 +16,14 @@
         <h2>Filtros</h2>
 
         <label for="cidade">Cidade:</label>
-        <input type="text" id="cidade" placeholder="Ex: São Paulo/SP" />
+        <input type="text" id="cidade" placeholder="Ex: Braço do Norte/SC" />
 
         <label for="usuario">Usuário:</label>
-        <input type="text" id="usuario" placeholder="Digite nome do usuário" />
+        <input
+          type="text"
+          id="usuario"
+          placeholder="Digite um nome de usuário"
+        />
 
         <label for="data-inicio">Data Início:</label>
         <input type="date" id="data-inicio" />
@@ -34,6 +38,18 @@
         <div class="filtro-extra">
           <!-- caso necessite de mais filtros -->
         </div>
+
+
+          <button class="icon-print" id="btn-imprimir-resumo" title="Imprimir">
+            <i class="fa-solid fa-print" style="color: #000000"></i>
+            Imprimir resumo
+          </button>
+
+          <button class="icon-print" id="btn-imprimir-completo" title="Imprimir">
+            <i class="fa-solid fa-print" style="color: #000000"></i>
+            Imprimir com conversa
+          </button>
+
       </aside>
 
       <!-- CHAT -->
@@ -42,8 +58,8 @@
           <h2>Chat</h2>
 
           <div class="chat-header-buttons">
-            <button class="icon-config" title="Configurações">
-              <i class="fa-solid fa-gear"></i>
+            <button class="icon-add-user" title="Add usuario">
+              <i class="fa-solid fa-user-plus" style="color: #000000"></i>
             </button>
 
             <button class="icon-logoff" title="Sair">
@@ -57,6 +73,6 @@
         </div>
       </main>
     </div>
-      <script src="script.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
