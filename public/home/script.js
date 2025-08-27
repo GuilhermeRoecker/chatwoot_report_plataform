@@ -69,6 +69,9 @@ const queryParams = new URLSearchParams();
     const resultados = await response.json();
     window.conversasCompletas = resultados;
     exibirConversas(resultados);
+
+    const semCidade = identificarConversasSemCidade();
+    console.log("Conversas sem cidade:", semCidade);
 });
 
 
@@ -186,10 +189,10 @@ function imprimirResumo() {
   html += `
     <thead>
       <tr style="background-color: #333; color: #fff;">
-        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Solicitante</th>
-        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Atendente</th>
-        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Início</th>
-        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Fim</th>
+        <th style="text-align: left; padding: 8px; border: 5px solid #ccc;">Solicitante</th>
+        <th style="text-align: left; padding: 8px; border: 5px solid #ccc;">Atendente</th>
+        <th style="text-align: left; padding: 8px; border: 5px solid #ccc;">Início</th>
+        <th style="text-align: left; padding: 8px; border: 5px solid #ccc;">Fim</th>
       </tr>
     </thead>
     <tbody>
@@ -203,10 +206,10 @@ function imprimirResumo() {
 
     html += `
       <tr>
-        <td style="padding: 8px; border: 1px solid #ccc;">${solicitante}</td>
-        <td style="padding: 8px; border: 1px solid #ccc;">${atendente?.sender_name || "-"}</td>
-        <td style="padding: 8px; border: 1px solid #ccc;">${formatarData(primeira.created_at)}</td>
-        <td style="padding: 8px; border: 1px solid #ccc;">${formatarData(ultima.created_at)}</td>
+        <td style="padding: 8px; border: 5px solid #ccc;">${solicitante}</td>
+        <td style="padding: 8px; border: 5px solid #ccc;">${atendente?.sender_name || "-"}</td>
+        <td style="padding: 8px; border: 5px solid #ccc;">${formatarData(primeira.created_at)}</td>
+        <td style="padding: 8px; border: 5px solid #ccc;">${formatarData(ultima.created_at)}</td>
       </tr>
     `;
   }
@@ -258,5 +261,92 @@ function imprimirCompleto() {
   printArea.remove();
 }
 
+function imprimirResumoPorCidade() {
+  const dataInicio = document.getElementById("data-inicio").value || "não informado";
+  const dataFim = document.getElementById("data-fim").value || "não informado";
+  const conversasAgrupadas = agruparConversas(window.conversasCompletas);
+  const printArea = document.createElement("div");
+  printArea.className = "print-area";
+
+  const cidadeFiltrada = document.getElementById("cidade").value || null;
+
+  const conversasPorCidade = {}; // { chave: { label: cidade, qtd } }
+
+  for (const [, msgs] of Object.entries(conversasAgrupadas)) {
+    let cidadeLabel = "Não informada";
+
+    if (cidadeFiltrada) {
+      // caso tenha filtro, força a cidade
+      cidadeLabel = cidadeFiltrada;
+    } else {
+      // tenta encontrar a cidade em qualquer mensagem do Contact
+      const msgsContact = msgs.filter(m => m.sender_type === "Contact" && m.cidade && m.cidade.trim() !== "");
+      if (msgsContact.length > 0) {
+        // pega a cidade mais frequente ou a primeira válida
+        cidadeLabel = msgsContact[0].cidade.trim();
+      }
+    }
+
+    const chave = cidadeLabel.toLowerCase(); // chave para agrupar
+
+    if (!conversasPorCidade[chave]) {
+      conversasPorCidade[chave] = { label: cidadeLabel, qtd: 0 };
+    }
+    conversasPorCidade[chave].qtd += 1;
+  }
+
+  const qtdConversas = Object.keys(conversasAgrupadas).length;
+
+  const cidadesOrdenadas = Object.values(conversasPorCidade).sort((a, b) => b.qtd - a.qtd);
+
+  let html = `<h2>Resumo por Cidade</h2>`;
+  html += `<p>Conversas encontradas: <strong>${qtdConversas}</strong></p>`;
+  html += `<p>Período: <strong>${dataInicio}</strong> até <strong>${dataFim}</strong></p>`;
+  html += `<table style="width:100%; border-collapse: collapse; font-size:14px;">
+    <thead>
+      <tr style="background-color:#333; color:#fff;">
+        <th style="padding:8px; border:2px solid #000000ff;">Cidade</th>
+        <th style="padding:8px; border:2px solid #000000ff;">Qtd. Chamados</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for (const { label, qtd } of cidadesOrdenadas) {
+    html += `<tr>
+      <td style="padding:8px; border:2px solid #000000ff;">${label}</td>
+      <td style="padding:8px; border:2px solid #000000ff; text-align:right;">${qtd}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table>`;
+
+  printArea.innerHTML = html;
+  document.body.appendChild(printArea);
+  window.print();
+  printArea.remove();
+}
+
+function identificarConversasSemCidade() {
+  const conversasAgrupadas = agruparConversas(window.conversasCompletas);
+  const conversasSemCidade = [];
+
+  for (const [conversationId, msgs] of Object.entries(conversasAgrupadas)) {
+    // pega apenas mensagens de Contact com cidade preenchida
+    const msgsComCidade = msgs.filter(m => m.sender_type === "Contact" && m.cidade && m.cidade.trim() !== "");
+
+    if (msgsComCidade.length === 0) {
+      // nenhuma mensagem do Contact tem cidade → adiciona ao array
+      conversasSemCidade.push({
+        conversationId,
+        mensagens: msgs
+      });
+    }
+  }
+
+  return conversasSemCidade;
+}
+
+
 document.getElementById("btn-imprimir-resumo").addEventListener("click", imprimirResumo);
+document.getElementById("btn-imprimir-resumo-cidade").addEventListener("click", imprimirResumoPorCidade);
 document.getElementById("btn-imprimir-completo").addEventListener("click", imprimirCompleto);
