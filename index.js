@@ -7,7 +7,7 @@ require('dotenv').config()
 app.use(cookieParser());
 app.use(express.json());
 
-const allowlist = ['http://localhost:3000', 'http://192.168.2.115:3000'];
+const allowlist = ['*'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   if (allowlist.indexOf(req.header('Origin')) !== -1) {

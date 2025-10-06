@@ -32,6 +32,8 @@
         <input type="date" id="data-fim" />
 
         <button id="btn-buscar">Buscar Conversas</button>
+        <button id="btn-limpar-filtros" class="secondary">Limpar Filtros</button>
+        <div id="loading-indicator" style="display: none; text-align: center; margin-top: 10px;">Carregando...</div>
         <div id="quantidade-conversas"></div>
         <ul id="lista-conversas"></ul>
 
@@ -52,6 +54,11 @@
           <button class="icon-print" id="btn-imprimir-resumo-cidade" title="Imprimir">
             <i class="fa-solid fa-print" style="color: #000000"></i>
             Imprimir resumo por cidade
+          </button>
+
+          <button class="icon-print" id="btn-imprimir-resumo-tempo" title="Imprimir">
+            <i class="fa-solid fa-print" style="color: #000000"></i>
+            Imprimir por TMA
           </button>
 
       </aside>

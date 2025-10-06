@@ -59,6 +59,28 @@ body {
   /* Espaço vazio para futuro conteúdo */
 }
 
+/* Botão secundário para limpar filtros */
+.sidebar button.secondary {
+  background-color: #4a4a4a;
+  color: #ffffff;
+  border: 1px solid #555;
+}
+
+.sidebar button.secondary:hover {
+  background-color: #5a5a5a;
+}
+
+/* Botões em geral */
+.sidebar button {
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
 /* ÁREA PRINCIPAL DE CHAT */
 .chat-area {
   flex-grow: 1;

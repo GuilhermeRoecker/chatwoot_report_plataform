@@ -1,79 +1,52 @@
-async function verificarAcesso() {
-  let usuario;
-
-  try {
-    const res = await fetch('/auth/me', {
-      credentials: 'include'
-    });
-
-    const dados = await res.json();
-
-    if (!res.ok) {
-      throw new Error('Usuário não autenticado');
-    }
-
-    usuario = dados;
-  } catch (e) {
-    window.location.href = '/login';
-    return false;
-  }
-
-  return true;
-}
-
-function logout() {
-  fetch('/auth/logout', { method: 'POST', credentials: 'include' })
-    .then((res) => {
-      location.reload();
-    })
-    .catch((err) => {
-      location.reload();
-    });
-}
-
 function users(){
     window.location.href = '/users';
 }
+async function buscarConversas() {
+    const loadingIndicator = document.getElementById("loading-indicator");
+    const btnBuscar = document.getElementById("btn-buscar");
 
-window.addEventListener("DOMContentLoaded", async () => {
-  const acessoPermitido = await verificarAcesso();
-  if (!acessoPermitido) return;
-});
+    loadingIndicator.style.display = "block";
+    btnBuscar.disabled = true;
 
-
-document.getElementById("btn-buscar").addEventListener("click", async () => {
     const cidade = document.getElementById("cidade").value;
     const usuario = document.getElementById("usuario").value;
     const dataInicio = document.getElementById("data-inicio").value;
     const dataFim = document.getElementById("data-fim").value;
 
-const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
     if (cidade) queryParams.append("cidade", cidade);
     if (usuario) queryParams.append("usuario", usuario);
-    if (dataInicio && dataFim) {
-        queryParams.append("dataInicio", dataInicio);
-        queryParams.append("dataFim", dataFim);
-    }
+    if (dataInicio) queryParams.append("dataInicio", dataInicio);
+    if (dataFim) queryParams.append("dataFim", dataFim);
 
-    if (!cidade && !usuario && !(dataInicio && dataFim)) {
+    if (!cidade && !usuario && !dataInicio && !dataFim) {
         alert("Preencha ao menos um filtro.");
+        loadingIndicator.style.display = "none";
+        btnBuscar.disabled = false;
         return;
     }
 
-    const response = await fetch(`http://localhost:3000/relatorio?${queryParams.toString()}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-    });
-    const resultados = await response.json();
-    window.conversasCompletas = resultados;
-    exibirConversas(resultados);
+    try {
+        const response = await fetch(`http://192.168.2.115:3000/relatorio?${queryParams.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            },
+        });
+        const resultados = await response.json();
+        window.conversasCompletas = resultados;
+        exibirConversas(resultados);
 
-    const semCidade = identificarConversasSemCidade();
-    console.log("Conversas sem cidade:", semCidade);
-});
-
+        const semCidade = identificarConversasSemCidade();
+        console.log("Conversas sem cidade:", semCidade);
+    } catch (error) {
+        console.error("Erro ao buscar conversas:", error);
+        alert("Ocorreu um erro ao buscar os dados. Verifique o console para mais detalhes.");
+    } finally {
+        loadingIndicator.style.display = "none";
+        btnBuscar.disabled = false;
+    }
+}
 
 function exibirConversas(mensagens) {
     const conversasAgrupadas = {};
@@ -159,9 +132,6 @@ function mostrarChat(conversationId, mensagens) {
 
     chat.scrollTop = chat.scrollHeight;
 }
-
-document.querySelector(".icon-logoff").addEventListener("click", logout);
-document.querySelector(".icon-add-user").addEventListener("click", users);
 
 function agruparConversas(mensagens) {
   const agrupadas = {};
@@ -270,19 +240,16 @@ function imprimirResumoPorCidade() {
 
   const cidadeFiltrada = document.getElementById("cidade").value || null;
 
-  const conversasPorCidade = {}; // { chave: { label: cidade, qtd } }
+  const conversasPorCidade = {}; 
 
   for (const [, msgs] of Object.entries(conversasAgrupadas)) {
     let cidadeLabel = "Não informada";
 
     if (cidadeFiltrada) {
-      // caso tenha filtro, força a cidade
       cidadeLabel = cidadeFiltrada;
     } else {
-      // tenta encontrar a cidade em qualquer mensagem do Contact
       const msgsContact = msgs.filter(m => m.sender_type === "Contact" && m.cidade && m.cidade.trim() !== "");
       if (msgsContact.length > 0) {
-        // pega a cidade mais frequente ou a primeira válida
         cidadeLabel = msgsContact[0].cidade.trim();
       }
     }
@@ -331,11 +298,9 @@ function identificarConversasSemCidade() {
   const conversasSemCidade = [];
 
   for (const [conversationId, msgs] of Object.entries(conversasAgrupadas)) {
-    // pega apenas mensagens de Contact com cidade preenchida
     const msgsComCidade = msgs.filter(m => m.sender_type === "Contact" && m.cidade && m.cidade.trim() !== "");
 
     if (msgsComCidade.length === 0) {
-      // nenhuma mensagem do Contact tem cidade → adiciona ao array
       conversasSemCidade.push({
         conversationId,
         mensagens: msgs
@@ -346,7 +311,132 @@ function identificarConversasSemCidade() {
   return conversasSemCidade;
 }
 
+function imprimirResumoPorTempo() {
+  const conversasAgrupadas = agruparConversas(window.conversasCompletas);
+  const printArea = document.createElement("div");
+  printArea.className = "print-area";
+
+  const conversasComDuracao = Object.values(conversasAgrupadas).map(msgs => {
+    const primeiraMsg = msgs[0];
+    const ultimaMsg = msgs[msgs.length - 1];
+    const duracaoMs = new Date(ultimaMsg.created_at).getTime() - new Date(primeiraMsg.created_at).getTime();
+
+    const horas = Math.floor(duracaoMs / (1000 * 60 * 60));
+    const minutos = Math.floor((duracaoMs % (1000 * 60 * 60)) / (1000 * 60));
+    const segundos = Math.floor((duracaoMs % (1000 * 60)) / 1000);
+    const duracaoFormatada = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+
+    const contatoMsg = msgs.find(m => m.sender_type === "Contact");
+    const cidade = contatoMsg?.cidade?.trim() || "Não informada";
+
+    return {
+      cidade: cidade,
+      solicitante: contatoMsg?.sender_name || "Não identificado",
+      atendente: msgs.find(m => m.sender_type === "User")?.sender_name || "-",
+      inicio: formatarData(primeiraMsg.created_at),
+      fim: formatarData(ultimaMsg.created_at),
+      duracaoMs: duracaoMs,
+      duracaoFormatada: duracaoFormatada
+    };
+  });
+
+  conversasComDuracao.sort((a, b) => b.duracaoMs - a.duracaoMs); // Ordena do maior para o menor tempo
+
+  let html = `<h2>Resumo por Tempo de Atendimento (TMA)</h2>`;
+  html += `<p>Conversas encontradas: <strong>${conversasComDuracao.length}</strong></p>`;
+  html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+    <thead>
+      <tr style="background-color: #333; color: #fff;">
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Solicitante</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Atendente</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Início</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Fim</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Duração</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  conversasComDuracao.forEach(conversa => {
+    html += `<tr>
+      <td style="padding: 8px; border: 2px solid #ccc;">${conversa.solicitante}</td>
+      <td style="padding: 8px; border: 2px solid #ccc;">${conversa.atendente}</td>
+      <td style="padding: 8px; border: 2px solid #ccc;">${conversa.inicio}</td>
+      <td style="padding: 8px; border: 2px solid #ccc;">${conversa.fim}</td>
+      <td style="padding: 8px; border: 2px solid #ccc;">${conversa.duracaoFormatada}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table><br>`;
+
+  const tempoPorCidade = {};
+  conversasComDuracao.forEach(conversa => {
+    const chaveCidade = conversa.cidade.toLowerCase();
+    if (!tempoPorCidade[chaveCidade]) {
+      tempoPorCidade[chaveCidade] = {
+        label: conversa.cidade,
+        duracaoTotalMs: 0
+      };
+    }
+    tempoPorCidade[chaveCidade].duracaoTotalMs += conversa.duracaoMs;
+  });
+
+  const cidadesOrdenadasPorTempo = Object.values(tempoPorCidade).sort((a, b) => b.duracaoTotalMs - a.duracaoTotalMs);
+
+  html += `<h3 style="margin-top: 20px;">Tempo Total de Atendimento por Cidade</h3>`;
+  html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px;">
+    <thead>
+      <tr style="background-color: #333; color: #fff;">
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Cidade</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ccc;">Tempo Total</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  cidadesOrdenadasPorTempo.forEach(cidadeInfo => {
+    const duracaoMs = cidadeInfo.duracaoTotalMs;
+    const horas = Math.floor(duracaoMs / (1000 * 60 * 60));
+    const minutos = Math.floor((duracaoMs % (1000 * 60 * 60)) / (1000 * 60));
+    const segundos = Math.floor((duracaoMs % (1000 * 60)) / 1000);
+    const tempoTotalFormatado = `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+
+    html += `<tr>
+      <td style="padding: 8px; border: 1px solid #ccc;">${cidadeInfo.label}</td>
+      <td style="padding: 8px; border: 1px solid #ccc;">${tempoTotalFormatado}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  // --- Fim: Lógica para agrupar e somar tempo por cidade ---
+
+  printArea.innerHTML = html;
+  document.body.appendChild(printArea);
+  window.print();
+  printArea.remove();
+}
 
 document.getElementById("btn-imprimir-resumo").addEventListener("click", imprimirResumo);
 document.getElementById("btn-imprimir-resumo-cidade").addEventListener("click", imprimirResumoPorCidade);
 document.getElementById("btn-imprimir-completo").addEventListener("click", imprimirCompleto);
+document.getElementById("btn-imprimir-resumo-tempo").addEventListener("click", imprimirResumoPorTempo);
+document.getElementById("btn-buscar").addEventListener("click", buscarConversas);
+
+// Limpar filtros
+document.getElementById("btn-limpar-filtros").addEventListener("click", () => {
+    document.getElementById("cidade").value = "";
+    document.getElementById("usuario").value = "";
+    document.getElementById("data-inicio").value = "";
+    document.getElementById("data-fim").value = "";
+    document.getElementById("quantidade-conversas").innerText = "";
+    document.getElementById("lista-conversas").innerHTML = "";
+    window.conversasCompletas = [];
+});
+
+// Adiciona busca com a tecla "Enter"
+const inputs = document.querySelectorAll("#cidade, #usuario, #data-inicio, #data-fim");
+inputs.forEach(input => {
+    input.addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+            buscarConversas();
+        }
+    });
+});
