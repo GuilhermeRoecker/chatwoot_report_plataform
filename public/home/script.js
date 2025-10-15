@@ -64,9 +64,11 @@ async function buscarConversas() {
             },
         });
         const resultados = await response.json();
-        const conversasProcessadas = preprocessarConversas(resultados);
-        window.conversasCompletas = conversasProcessadas;
-        exibirConversas(conversasProcessadas);
+        const dataInicio = document.getElementById("data-inicio").value;
+        const dataFim = document.getElementById("data-fim").value;
+        const conversasProcessadas = preprocessarConversas(resultados, dataInicio, dataFim);
+        window.conversasCompletas = conversasProcessadas; // Atualiza com as conversas já filtradas
+        exibirConversas(conversasProcessadas, currentAgruparPor, currentOrdenarPor);
 
     } catch (error) {
         console.error("Erro ao buscar conversas:", error);
@@ -77,7 +79,7 @@ async function buscarConversas() {
     }
 }
 
-function preprocessarConversas(mensagens) {
+function preprocessarConversas(mensagens, dataInicio, dataFim) {
     const conversasOriginais = {};
     mensagens.forEach(msg => {
         if (!conversasOriginais[msg.conversation_id]) {
@@ -86,34 +88,52 @@ function preprocessarConversas(mensagens) {
         conversasOriginais[msg.conversation_id].push(msg);
     });
 
-    const conversasFinais = [];
+    const subConversas = [];
     Object.values(conversasOriginais).forEach(conversa => {
         let subConversaAtual = [];
         let subConversaIndex = 0;
 
         conversa.forEach(msg => {
-            subConversaAtual.push({
-                ...msg,
-                conversation_id: `${msg.conversation_id}-${subConversaIndex}`
-            });
+            const novaMsg = { ...msg, original_conversation_id: msg.conversation_id, conversation_id: `${msg.conversation_id}-${subConversaIndex}` };
+            subConversaAtual.push(novaMsg);
 
             const isResolvedMessage = msg.sender_type === null &&
                                       msg.message_type === 2 &&
                                       msg.processed_message_content?.includes("Conversa foi marcada como resolvida por");
 
             if (isResolvedMessage && subConversaAtual.length > 0) {
-                conversasFinais.push(...subConversaAtual);
+                subConversas.push(subConversaAtual);
                 subConversaAtual = [];
                 subConversaIndex++;
             }
         });
 
         if (subConversaAtual.length > 0) {
-            conversasFinais.push(...subConversaAtual);
+            subConversas.push(subConversaAtual);
         }
     });
 
-    return conversasFinais;
+    // Se não houver filtro de data, retorna todas as conversas processadas
+    if (!dataInicio && !dataFim) {
+        return subConversas.flat();
+    }
+
+    // Filtra as sub-conversas para manter apenas aquelas que estão dentro do período
+    const conversasFiltradas = subConversas.filter(subConv => {
+        return subConv.some(msg => {
+            const msgDate = new Date(msg.created_at);
+            // O fuso horário é ajustado para UTC para a comparação
+            const inicio = dataInicio ? new Date(dataInicio + 'T00:00:00.000Z') : null;
+            const fim = dataFim ? new Date(dataFim + 'T23:59:59.999Z') : null;
+
+            if (inicio && msgDate < inicio) return false;
+            if (fim && msgDate > fim) return false;
+            return true;
+        });
+    });
+
+    // Retorna a lista achatada de mensagens das conversas filtradas
+    return conversasFiltradas.flat();
 }
 
 function exibirConversas(mensagens, agruparPor = 'conversa', ordenarPor = 'data') {
@@ -258,6 +278,12 @@ function formatarData(dataStr) {
   });
 }
 
+function formatarDataParaRelatorio(dataStr) {
+    if (!dataStr) return '';
+    const [ano, mes, dia] = dataStr.split('-');
+    return `${dia}/${mes}/${ano}`;
+}
+
 function mostrarChat(conversationId, mensagens) {
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
@@ -311,7 +337,20 @@ function imprimir(tipoRelatorio) {
     const printArea = document.createElement("div");
     printArea.className = "print-area";
 
+    const dataInicio = document.getElementById("data-inicio").value;
+    const dataFim = document.getElementById("data-fim").value;
+
+    let periodoRelatorio = '';
+    if (dataInicio || dataFim) {
+        const inicioFormatado = formatarDataParaRelatorio(dataInicio);
+        const fimFormatado = formatarDataParaRelatorio(dataFim);
+        periodoRelatorio = `Período: ${inicioFormatado || 'N/A'} a ${fimFormatado || 'N/A'}`;
+    }
+
     let html = `<h2>Relatório de ${tipoRelatorio.charAt(0).toUpperCase() + tipoRelatorio.slice(1)}</h2>`;
+    if (periodoRelatorio) {
+        html += `<p style="font-size: 12px; margin-bottom: 20px;">${periodoRelatorio}</p>`;
+    }
 
     if (tipoRelatorio === 'tma') {
         html += gerarHtmlTMA(chavesOrdenadas, grupos);
