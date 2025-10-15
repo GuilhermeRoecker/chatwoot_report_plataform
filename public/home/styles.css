@@ -18,7 +18,7 @@ body {
 
 /* SIDEBAR COM FILTROS */
 .sidebar {
-  width: 280px;
+  width: 320px; /* Aumentado */
   background-color: #1e1e1e;
   padding: 20px;
   display: flex;
@@ -120,7 +120,7 @@ body {
   background-color: #cc0000;
 }
 
-.icon-add-user {
+.icon-config {
   background-color: #ffffff;
   border: 1px solid #ffffff;
   color: #000000;
@@ -134,7 +134,7 @@ body {
   transition: background-color 0.3s;
 }
 
-.icon-add-user:hover {
+.icon-config:hover {
   background-color: #e6e6e6;
 }
 
@@ -184,15 +184,27 @@ body {
 #lista-conversas {
   list-style: none;
   padding: 0;
-  max-height: 300px;
+  max-height: 450px; /* Aumentado */
   overflow-y: auto;
   margin-top: 10px;
 }
 
 #lista-conversas li {
-  padding: 8px;
-  border-bottom: 1px solid #ccc;
+  padding: 10px; /* Aumentado */
+  border-bottom: 1px solid #333; /* Cor ajustada */
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
+
+#lista-conversas li:hover {
+  background-color: #2a2a2a;
+}
+
+#lista-conversas li.selected {
+  background-color: #007bff;
+  color: white;
+}
+
 
 /* MENSAGENS */
 #chat {
@@ -247,6 +259,61 @@ body {
   margin-top: 4px;
   display: block;
   clear: both;
+}
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  background-color: #1e1e1e;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 500px;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-section {
+  margin-bottom: 20px;
+}
+
+.modal-section h3 {
+  margin-bottom: 10px;
+}
+
+.modal-section select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #333;
 }
 
 @media print {

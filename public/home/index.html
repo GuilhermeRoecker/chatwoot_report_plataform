@@ -69,8 +69,8 @@
           <h2>Chat</h2>
 
           <div class="chat-header-buttons">
-            <button class="icon-add-user" title="Add usuario">
-              <i class="fa-solid fa-user-plus" style="color: #000000"></i>
+            <button id="btn-config" class="icon-config" title="Configurações">
+              <i class="fa-solid fa-cog" style="color: #000000"></i>
             </button>
 
             <button class="icon-logoff" title="Sair">
@@ -84,6 +84,34 @@
         </div>
       </main>
     </div>
+
+    <div id="config-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>Configurações de Filtro</h2>
+
+        <div class="modal-section">
+          <h3>Agrupar por:</h3>
+          <select id="agrupar-por">
+            <option value="conversa">Conversa</option>
+            <option value="cidade">Cidade</option>
+            <option value="suporte">Agente de Suporte</option>
+            <option value="solicitante">Solicitante</option>
+          </select>
+        </div>
+
+        <div class="modal-section">
+          <h3>Ordenar por:</h3>
+          <select id="ordenar-por">
+            <option value="data">Data</option>
+            <option value="numero_chats">Número de Chats</option>
+            <option value="tempo_conversa">Tempo de Conversa</a_option>
+          </select>
+        </div>
+        <button id="btn-aplicar-filtros-modal" class="primary">Aplicar</button>
+      </div>
+    </div>
+
     <script src="script.js"></script>
   </body>
 </html>
