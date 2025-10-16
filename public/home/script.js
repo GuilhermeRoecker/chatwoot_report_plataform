@@ -82,10 +82,10 @@ async function buscarConversas() {
 function preprocessarConversas(mensagens, dataInicio, dataFim) {
     const conversasOriginais = {};
     mensagens.forEach(msg => {
-        if (!conversasOriginais[msg.conversation_id]) {
-            conversasOriginais[msg.conversation_id] = [];
+        if (!conversasOriginais[msg.original_conversation_id]) {
+            conversasOriginais[msg.original_conversation_id] = [];
         }
-        conversasOriginais[msg.conversation_id].push(msg);
+        conversasOriginais[msg.original_conversation_id].push(msg);
     });
 
     const subConversas = [];
@@ -94,7 +94,11 @@ function preprocessarConversas(mensagens, dataInicio, dataFim) {
         let subConversaIndex = 0;
 
         conversa.forEach(msg => {
-            const novaMsg = { ...msg, original_conversation_id: msg.conversation_id, conversation_id: `${msg.conversation_id}-${subConversaIndex}` };
+            // Mantemos o original_conversation_id limpo
+            const novaMsg = { 
+                ...msg, 
+                conversation_id: `${msg.original_conversation_id}-${subConversaIndex}` 
+            };
             subConversaAtual.push(novaMsg);
 
             const isResolvedMessage = msg.sender_type === null &&
@@ -118,11 +122,10 @@ function preprocessarConversas(mensagens, dataInicio, dataFim) {
         return subConversas.flat();
     }
 
-    // Filtra as sub-conversas para manter apenas aquelas que estão dentro do período
+    // Filtra sub-conversas para manter apenas as que estão dentro do período
     const conversasFiltradas = subConversas.filter(subConv => {
         return subConv.some(msg => {
             const msgDate = new Date(msg.created_at);
-            // O fuso horário é ajustado para UTC para a comparação
             const inicio = dataInicio ? new Date(dataInicio + 'T00:00:00.000Z') : null;
             const fim = dataFim ? new Date(dataFim + 'T23:59:59.999Z') : null;
 
@@ -132,7 +135,7 @@ function preprocessarConversas(mensagens, dataInicio, dataFim) {
         });
     });
 
-    // Retorna a lista achatada de mensagens das conversas filtradas
+    // Retorna lista achatada de mensagens das conversas filtradas
     return conversasFiltradas.flat();
 }
 
@@ -152,8 +155,8 @@ function exibirConversas(mensagens, agruparPor = 'conversa', ordenarPor = 'data'
 
         const li = document.createElement("li");
         if (agruparPor === 'conversa') {
-            const solicitante = mensagensDoGrupo.find(m => m.sender_type === 'Contact' && m.sender_name);
-            li.innerText = `${formatarData(primeiraMensagem.created_at)} - ${solicitante ? solicitante.sender_name : 'N/A'}`;
+            const solicitanteNome = primeiraMensagem.contact_name || mensagensDoGrupo.find(m => m.sender_type === 'Contact')?.sender_name || 'N/A';
+            li.innerText = `${formatarData(primeiraMensagem.created_at)} - ${solicitanteNome}`;
         } else {
             const totalConversas = new Set(mensagensDoGrupo.map(m => m.conversation_id)).size;
             li.innerText = `${chave} (${totalConversas} conversas)`;
@@ -198,14 +201,14 @@ function agruparConversas(mensagens, agruparPor) {
         const conversaMsgs = conversas[id];
         let chave;
         if (agruparPor === 'cidade') {
-            const contato = conversaMsgs.find(m => m.sender_type === 'Contact' && m.cidade);
-            chave = (contato && contato.cidade) ? contato.cidade.trim() : 'Sem cidade';
+            const cidadeMsg = conversaMsgs.find(m => m.cidade);
+            chave = cidadeMsg ? cidadeMsg.cidade.trim() : 'Sem cidade';
         } else if (agruparPor === 'suporte') {
             const suporte = conversaMsgs.find(m => m.sender_type === 'User');
             chave = suporte ? suporte.sender_name : 'Sem agente';
         } else if (agruparPor === 'solicitante') {
-            const solicitante = conversaMsgs.find(m => m.sender_type === 'Contact');
-            chave = solicitante ? solicitante.sender_name : 'Sem solicitante';
+            const solicitanteNome = conversaMsgs[0].contact_name || conversaMsgs.find(m => m.sender_type === 'Contact')?.sender_name;
+            chave = solicitanteNome || 'Sem solicitante';
         }
 
         if (!grupos[chave]) {
@@ -400,12 +403,12 @@ function gerarHtmlTMA(chaves, grupos) {
 
         html += `<tr>`;
         if (currentAgruparPor === 'conversa') {
-            const solicitante = grupo.find(m => m.sender_type === 'Contact')?.sender_name || 'N/A';
+            const solicitante = grupo[0].contact_name || grupo.find(m => m.sender_type === 'Contact')?.sender_name || 'N/A';
             const atendente = grupo.find(m => m.sender_type === 'User')?.sender_name || 'N/A';
             html += `<td style="padding: 8px; border: 2px solid #ccc;">${solicitante}</td>`;
             html += `<td style="padding: 8px; border: 2px solid #ccc;">${atendente}</td>`;
         } else {
-            const cidades = [...new Set(grupo.map(m => m.cidade).filter(c => c))].join(', ') || 'N/A';
+            const cidades = [...new Set(grupo.map(m => m.cidade).filter(Boolean))].join(', ') || 'N/A';
             html += `<td style="padding: 8px; border: 2px solid #ccc;">${chave}</td>`;
             html += `<td style="padding: 8px; border: 2px solid #ccc;">${cidades}</td>`;
         }
@@ -453,7 +456,7 @@ function gerarHtmlCompleto(chaves, grupos) {
         for(const id of idsOrdenados) {
             const mensagens = conversas[id];
             const primeira = mensagens[0];
-            const solicitante = mensagens.find(m => m.sender_type === "Contact" && m.sender_name)?.sender_name || "N/A";
+            const solicitante = primeira.contact_name || mensagens.find(m => m.sender_type === "Contact")?.sender_name || "N/A";
             const atendente = mensagens.find(m => m.sender_type === "User")?.sender_name || "-";
 
             html += `<h3>${formatarData(primeira.created_at)} - ${solicitante}</h3>`;
