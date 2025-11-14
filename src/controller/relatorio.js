@@ -45,10 +45,14 @@ const relatorioController = {
         pm.created_at,
         pm.private,
         pm.message_type,
+        pm.inbox_id,
+        pi.name,
         pc.location AS sender_location
       FROM public.messages pm
       LEFT JOIN public.contacts pc 
         ON pc.id = pm.sender_id AND pm.sender_type = 'Contact'
+      LEFT JOIN public.inboxes pi 
+        ON pi.id = pm.inbox_id
       LEFT JOIN public.users pu 
         ON pu.id = pm.sender_id AND pm.sender_type = 'User'
       WHERE pm.conversation_id IN (

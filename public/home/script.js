@@ -20,6 +20,33 @@ window.onclick = function (event) {
   }
 }
 
+const btnFiltroExtra = document.getElementById("btn-filtro-extra");
+const filtroExtraContent = document.getElementById("filtro-extra-content");
+
+btnFiltroExtra.addEventListener("click", () => {
+  const display = filtroExtraContent.style.display;
+  filtroExtraContent.style.display = display === "none" ? "block" : "none";
+});
+
+async function carregarInboxes() {
+  try {
+    const response = await fetch('http://192.168.2.115:3000/inboxes');
+    const inboxes = await response.json();
+    const select = document.getElementById('inbox-select');
+    select.innerHTML = '';
+    inboxes.forEach(inbox => {
+      const option = document.createElement('option');
+      option.value = inbox.id;
+      option.textContent = inbox.name;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar inboxes:', error);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', carregarInboxes);
+
 btnAplicarFiltrosModal.addEventListener("click", () => {
     currentAgruparPor = document.getElementById("agrupar-por").value;
     currentOrdenarPor = document.getElementById("ordenar-por").value;
@@ -42,14 +69,18 @@ async function buscarConversas() {
     const usuario = document.getElementById("usuario").value;
     const dataInicio = document.getElementById("data-inicio").value;
     const dataFim = document.getElementById("data-fim").value;
+    const inboxesSelecionadas = Array.from(document.getElementById("inbox-select").selectedOptions).map(opt => opt.value);
 
     const queryParams = new URLSearchParams();
     if (cidade) queryParams.append("cidade", cidade);
-    if (usuario) queryParams.append("usuario", usuario);
+    if (usuario) queryPrams.append("usuario", usuario);
     if (dataInicio) queryParams.append("dataInicio", dataInicio);
     if (dataFim) queryParams.append("dataFim", dataFim);
+    if (inboxesSelecionadas.length > 0) {
+      queryParams.append("inbox_ids", inboxesSelecionadas.join(","));
+    }
 
-    if (!cidade && !usuario && !dataInicio && !dataFim) {
+    if (!cidade && !usuario && !dataInicio && !dataFim && inboxesSelecionadas.length === 0) {
         alert("Preencha ao menos um filtro.");
         loadingIndicator.style.display = "none";
         btnBuscar.disabled = false;
@@ -446,11 +477,23 @@ function gerarHtmlResumo(chaves, grupos) {
 
 function gerarHtmlCompleto(chaves, grupos) {
     let html = `<p>Total de grupos: ${chaves.length}</p><br>`;
+    const naoMostrarPrivadas = document.getElementById("nao-mostrar-privadas").checked;
+    const naoMostrarSistema = document.getElementById("nao-mostrar-sistema").checked;
+
     for (const chave of chaves) {
         const grupo = grupos[chave];
         html += `<h2>Grupo: ${chave}</h2>`;
 
-        const conversas = agruparConversas(grupo, 'conversa');
+        let mensagensFiltradas = grupo;
+
+        if (naoMostrarPrivadas) {
+            mensagensFiltradas = mensagensFiltradas.filter(msg => !msg.private);
+        }
+        if (naoMostrarSistema) {
+            mensagensFiltradas = mensagensFiltradas.filter(msg => !(msg.sender_type === null && msg.message_type === 2));
+        }
+
+        const conversas = agruparConversas(mensagensFiltradas, 'conversa');
         const idsOrdenados = ordenarGrupos(conversas, 'data');
 
         for(const id of idsOrdenados) {

@@ -38,7 +38,14 @@
         <ul id="lista-conversas"></ul>
 
         <div class="filtro-extra">
-          <!-- caso necessite de mais filtros -->
+          <label for="nao-mostrar-privadas" style="display: flex; align-items: center; font-size: 12px; cursor: pointer;">
+            <input type="checkbox" id="nao-mostrar-privadas" style="margin-right: 8px;">
+            Não incluir mensagens privadas no relatório completo
+          </label>
+          <label for="nao-mostrar-sistema" style="display: flex; align-items: center; font-size: 12px; cursor: pointer; margin-top: 5px;">
+            <input type="checkbox" id="nao-mostrar-sistema" style="margin-right: 8px;">
+            Não incluir mensagens do sistema no relatório completo
+          </label>
         </div>
 
           <button class="icon-print" id="btn-imprimir-resumo" title="Imprimir">
