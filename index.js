@@ -7,7 +7,7 @@ require('dotenv').config()
 app.use(cookieParser());
 app.use(express.json());
 
-const allowlist = ['*'];
+const allowlist = ['http://localhost:3000', 'http://192.168.2.115:3000'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   if (allowlist.indexOf(req.header('Origin')) !== -1) {
@@ -35,5 +35,5 @@ const userRoutes = require('./src/routes/userRoutes');
 app.use('/user', userRoutes);
 
 app.listen(3000, () => {
-  console.log('Servidor rodando em http://localhost:3000');
+  console.log('Servidor rodando em http://192.168.2.115:3000/home');
 });

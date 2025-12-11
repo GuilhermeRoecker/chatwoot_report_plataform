@@ -4,11 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
@@ -17,10 +19,14 @@
     "experss": "^0.0.1-security",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
+    "html-pdf": "^3.0.1",
+    "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.4",
     "mysql2": "^3.14.3",
     "path": "^0.12.7",
     "pg": "^8.16.3",
+    "phantomjs-prebuilt": "^2.1.16",
     "puppeteer": "^24.16.0"
   }
 }

@@ -20,25 +20,31 @@ window.onclick = function (event) {
   }
 }
 
-const btnFiltroExtra = document.getElementById("btn-filtro-extra");
-const filtroExtraContent = document.getElementById("filtro-extra-content");
-
-btnFiltroExtra.addEventListener("click", () => {
-  const display = filtroExtraContent.style.display;
-  filtroExtraContent.style.display = display === "none" ? "block" : "none";
-});
-
 async function carregarInboxes() {
   try {
     const response = await fetch('http://192.168.2.115:3000/inboxes');
     const inboxes = await response.json();
-    const select = document.getElementById('inbox-select');
-    select.innerHTML = '';
+    const inboxCheckboxesDiv = document.getElementById('inbox-checkboxes');
+    inboxCheckboxesDiv.innerHTML = ''; // Limpa checkboxes existentes
+
     inboxes.forEach(inbox => {
-      const option = document.createElement('option');
-      option.value = inbox.id;
-      option.textContent = inbox.name;
-      select.appendChild(option);
+      const label = document.createElement('label');
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.fontSize = '12px';
+      label.style.cursor = 'pointer';
+      label.style.marginTop = '5px';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'inbox-checkbox';
+      checkbox.value = inbox.id;
+      checkbox.id = `inbox-${inbox.id}`;
+      checkbox.style.marginRight = '8px';
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(inbox.name));
+      inboxCheckboxesDiv.appendChild(label);
     });
   } catch (error) {
     console.error('Erro ao carregar inboxes:', error);
@@ -50,7 +56,7 @@ window.addEventListener('DOMContentLoaded', carregarInboxes);
 btnAplicarFiltrosModal.addEventListener("click", () => {
     currentAgruparPor = document.getElementById("agrupar-por").value;
     currentOrdenarPor = document.getElementById("ordenar-por").value;
-    exibirConversas(window.conversasCompletas, currentAgruparPor, currentOrdenarPor);
+    buscarConversas(); // Chama buscarConversas para aplicar os filtros, incluindo os de inbox
     modal.style.display = "none";
 });
 
@@ -69,18 +75,22 @@ async function buscarConversas() {
     const usuario = document.getElementById("usuario").value;
     const dataInicio = document.getElementById("data-inicio").value;
     const dataFim = document.getElementById("data-fim").value;
-    const inboxesSelecionadas = Array.from(document.getElementById("inbox-select").selectedOptions).map(opt => opt.value);
+    const naoMostrarPrivadas = document.getElementById("nao-mostrar-privadas").checked;
+    const naoMostrarSistema = document.getElementById("nao-mostrar-sistema").checked;
+    const inboxesSelecionadas = Array.from(document.querySelectorAll('.inbox-checkbox:checked')).map(cb => cb.value);
 
     const queryParams = new URLSearchParams();
     if (cidade) queryParams.append("cidade", cidade);
-    if (usuario) queryPrams.append("usuario", usuario);
+    if (usuario) queryParams.append("usuario", usuario);
     if (dataInicio) queryParams.append("dataInicio", dataInicio);
     if (dataFim) queryParams.append("dataFim", dataFim);
+    if (naoMostrarPrivadas) queryParams.append("naoMostrarPrivadas", true);
+    if (naoMostrarSistema) queryParams.append("naoMostrarSistema", true);
     if (inboxesSelecionadas.length > 0) {
       queryParams.append("inbox_ids", inboxesSelecionadas.join(","));
     }
 
-    if (!cidade && !usuario && !dataInicio && !dataFim && inboxesSelecionadas.length === 0) {
+    if (!cidade && !usuario && !dataInicio && !dataFim && inboxesSelecionadas.length === 0 && !naoMostrarPrivadas && !naoMostrarSistema) {
         alert("Preencha ao menos um filtro.");
         loadingIndicator.style.display = "none";
         btnBuscar.disabled = false;
@@ -188,6 +198,8 @@ function exibirConversas(mensagens, agruparPor = 'conversa', ordenarPor = 'data'
         if (agruparPor === 'conversa') {
             const solicitanteNome = primeiraMensagem.contact_name || mensagensDoGrupo.find(m => m.sender_type === 'Contact')?.sender_name || 'N/A';
             li.innerText = `${formatarData(primeiraMensagem.created_at)} - ${solicitanteNome}`;
+            li.dataset.id = chave; // Salva o ID da conversa
+            li.dataset.solicitante = solicitanteNome; // Salva o nome do solicitante
         } else {
             const totalConversas = new Set(mensagensDoGrupo.map(m => m.conversation_id)).size;
             li.innerText = `${chave} (${totalConversas} conversas)`;
@@ -330,6 +342,7 @@ function mostrarChat(conversationId, mensagens) {
 
         if (msg.private === true) {
             div.style.backgroundColor = "rgb(89, 74, 5)";
+            div.style.color = "white"; // Garante legibilidade em mensagens privadas
         }
 
         if (msg.sender_type === null && msg.message_type === 2) {
@@ -550,6 +563,7 @@ document.getElementById("btn-imprimir-resumo").addEventListener("click", () => i
 document.getElementById("btn-imprimir-resumo-cidade").addEventListener("click", () => imprimir('resumo-cidade'));
 document.getElementById("btn-imprimir-completo").addEventListener("click", () => imprimir('completo'));
 document.getElementById("btn-imprimir-resumo-tempo").addEventListener("click", () => imprimir('tma'));
+document.getElementById("btn-salvar-pdf").addEventListener("click", salvarPDF);
 document.getElementById("btn-buscar").addEventListener("click", buscarConversas);
 
 // Limpar filtros
@@ -558,6 +572,9 @@ document.getElementById("btn-limpar-filtros").addEventListener("click", () => {
     document.getElementById("usuario").value = "";
     document.getElementById("data-inicio").value = "";
     document.getElementById("data-fim").value = "";
+    document.getElementById("nao-mostrar-privadas").checked = false;
+    document.getElementById("nao-mostrar-sistema").checked = false;
+    document.querySelectorAll('.inbox-checkbox').forEach(cb => cb.checked = false);
     document.getElementById("quantidade-conversas").innerText = "";
     document.getElementById("lista-conversas").innerHTML = "";
     window.conversasCompletas = [];
@@ -574,3 +591,75 @@ inputs.forEach(input => {
         }
     });
 });
+
+function exportarTodasConversas() {
+    const cidade = document.getElementById("cidade").value;
+    const usuario = document.getElementById("usuario").value;
+    const dataInicio = document.getElementById("data-inicio").value;
+    const dataFim = document.getElementById("data-fim").value;
+    const naoMostrarPrivadas = document.getElementById("nao-mostrar-privadas").checked;
+    const naoMostrarSistema = document.getElementById("nao-mostrar-sistema").checked;
+    const inboxesSelecionadas = Array.from(document.querySelectorAll('.inbox-checkbox:checked')).map(cb => cb.value);
+
+    const queryParams = new URLSearchParams();
+    if (cidade) queryParams.append("cidade", cidade);
+    if (usuario) queryParams.append("usuario", usuario);
+    if (dataInicio) queryParams.append("dataInicio", dataInicio);
+    if (dataFim) queryParams.append("dataFim", dataFim);
+    if (naoMostrarPrivadas) queryParams.append("naoMostrarPrivadas", true);
+    if (naoMostrarSistema) queryParams.append("naoMostrarSistema", true);
+    if (inboxesSelecionadas.length > 0) {
+      queryParams.append("inbox_ids", inboxesSelecionadas.join(","));
+    }
+
+    // Redireciona para a rota de exportação (ajuste o IP se necessário)
+    window.location.href = `http://192.168.2.115:3000/relatorio/exportar?${queryParams.toString()}`;
+}
+
+async function salvarPDF() {
+    const selectedLi = document.querySelector("#lista-conversas li.selected");
+    if (!selectedLi) {
+        // Se nada selecionado, pergunta se quer baixar tudo
+        if (confirm("Nenhuma conversa selecionada. Deseja baixar TODAS as conversas listadas em um arquivo ZIP?")) {
+            exportarTodasConversas();
+        }
+        return;
+    }
+
+    const conversationId = selectedLi.dataset.id || "ID_DESCONHECIDO";
+    const solicitante = selectedLi.dataset.solicitante || "CLIENTE";
+    const data = new Date().toISOString();
+
+    // Find the conversation to get the location
+    const conversationMessages = window.conversasCompletas.filter(m => m.conversation_id === conversationId);
+    const location = conversationMessages.length > 0 ? (conversationMessages[0].cidade || "Indefinido") : "Indefinido";
+
+    const chatContainer = document.getElementById('chat');
+    const htmlContent = chatContainer.innerHTML;
+
+    try {
+        const response = await fetch('http://192.168.2.115:3000/relatorio/pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                htmlContent,
+                conversationId,
+                solicitante,
+                data,
+                location,
+            }),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar PDF:', error);
+        alert('Ocorreu um erro ao salvar o PDF. Verifique o console para mais detalhes.');
+    }
+}
