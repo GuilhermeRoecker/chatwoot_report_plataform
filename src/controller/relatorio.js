@@ -177,15 +177,6 @@ const relatorioController = {
     }
 
     let browser;
-    const tempDir = path.join(__dirname, "..", "..", "temp");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    // Use a unique name to avoid conflicts if multiple requests happen at once
-    const tempHtmlPath = path.join(
-      tempDir,
-      `${conversationId}-${Date.now()}.html`
-    );
 
     try {
       const date = new Date(data);
@@ -225,20 +216,16 @@ const relatorioController = {
       const fileName = `${conversationId} - ${solicitante} - ${day}-${month}-${year}.pdf`;
       const filePath = path.join(dirPath, fileName);
 
-      fs.writeFileSync(tempHtmlPath, htmlContent);
-
       browser = await puppeteer.launch({
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
         ],
-        headless: true,
+        headless: "new",
       });
       const page = await browser.newPage();
-      await page.goto(`file://${tempHtmlPath}`, {
-        waitUntil: "domcontentloaded",
-      });
+      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
       await page.pdf({ path: filePath, format: "A4", timeout: 60000 }); // 60s timeout
 
       res.status(200).json({ message: "PDF gerado com sucesso!", filePath });
@@ -248,9 +235,6 @@ const relatorioController = {
     } finally {
       if (browser) {
         await browser.close();
-      }
-      if (fs.existsSync(tempHtmlPath)) {
-        fs.unlinkSync(tempHtmlPath);
       }
     }
   },
@@ -348,11 +332,6 @@ const relatorioController = {
       return res.status(404).json({ message: "Nenhuma conversa encontrada." });
     }
 
-    const tempDir = path.join(__dirname, "..", "..", "temp");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
     res.writeHead(200, {
       "Content-Type": "application/zip",
       "Content-Disposition": 'attachment; filename="conversas_exportadas.zip"',
@@ -388,91 +367,92 @@ const relatorioController = {
     const total = Object.keys(conversations).length;
     let count = 0;
 
-    for (const [id, msgs] of Object.entries(conversations)) {
-      count++;
-      console.log(`Gerando PDF ${count}/${total} para conversa ${id}`);
+    try {
+      for (const [id, msgs] of Object.entries(conversations)) {
+        count++;
+        console.log(`Gerando PDF ${count}/${total} para conversa ${id}`);
 
-      const contactName = msgs[0].contact_name;
-      const contactLocation = msgs[0].contact_location || "Indefinido";
+        const contactName = msgs[0].contact_name;
+        const contactLocation = msgs[0].contact_location || "Indefinido";
 
-      const date = new Date(msgs[0].created_at);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
+        const date = new Date(msgs[0].created_at);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
 
-      // UF e cidade
-      let uf = "Geral";
-      let cidade = contactLocation;
-      const ufMatch = contactLocation.match(/[-\s,]+([A-Z]{2})$/);
-      if (ufMatch) {
-        uf = ufMatch[1];
-        cidade = contactLocation.substring(0, ufMatch.index).trim();
-      }
-      cidade = cidade.replace(/[\\/]/g, "-");
+        // UF e cidade
+        let uf = "Geral";
+        let cidade = contactLocation;
+        const ufMatch = contactLocation.match(/[-\s,]+([A-Z]{2})$/);
+        if (ufMatch) {
+          uf = ufMatch[1];
+          cidade = contactLocation.substring(0, ufMatch.index).trim();
+        }
+        cidade = cidade.replace(/[\\/]/g, "-");
 
-      const fileName = `${id} - ${contactName} - ${day}-${month}-${year}.pdf`;
+        const fileName = `${id} - ${contactName} - ${day}-${month}-${year}.pdf`;
 
-      // MONTA HTML
-      let htmlContent = `
-        <html>
-          <meta charset="UTF-8">
-          <body style="font-family: sans-serif;">
-            <h2>${day}/${month}/${year} - ${contactName}</h2>
-            <hr>
-      `;
-
-      for (const m of msgs) {
-        const tipo =
-          m.sender_type === "Contact"
-            ? "Cliente"
-            : m.sender_type === "User"
-            ? "Atendente"
-            : "Sistema";
-
-        htmlContent += `
-          <p><strong>${m.sender_name} (${tipo}):</strong><br>
-          ${m.processed_message_content}<br>
-          <small>${new Date(m.created_at).toLocaleString("pt-BR")}</small></p>
+        // MONTA HTML
+        let htmlContent = `
+          <!DOCTYPE html>
+          <html>
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family: sans-serif;">
+              <h2>${day}/${month}/${year} - ${contactName}</h2>
+              <hr>
         `;
+
+        for (const m of msgs) {
+          const tipo =
+            m.sender_type === "Contact"
+              ? "Cliente"
+              : m.sender_type === "User"
+              ? "Atendente"
+              : "Sistema";
+
+          htmlContent += `
+            <p><strong>${m.sender_name} (${tipo}):</strong><br>
+            ${m.processed_message_content}<br>
+            <small>${new Date(m.created_at).toLocaleString("pt-BR")}</small></p>
+          `;
+        }
+
+        htmlContent += `</body></html>`;
+
+        // GERA PDF
+        const page = await browser.newPage();
+        try {
+          await page.setContent(htmlContent, {
+            waitUntil: "networkidle0",
+          });
+
+          // Garante que o corpo foi renderizado
+          await page.waitForSelector('body');
+
+          const pdfUint8Array = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: { top: "10mm", bottom: "10mm", left: "10mm", right: "10mm" },
+          });
+
+          const pdfBuffer = Buffer.from(pdfUint8Array);
+
+          if (pdfBuffer.length > 100) {
+            archive.append(pdfBuffer, {
+              name: `${uf}/${cidade}/${year}/${month}/${day}/${fileName}`,
+            });
+          } else {
+            console.log(`PDF inválido (tamanho: ${pdfBuffer.length}), pulando`, id);
+          }
+        } catch (pageError) {
+          console.error(`Erro ao gerar PDF da conversa ${id}:`, pageError);
+        } finally {
+          await page.close();
+        }
       }
-
-      htmlContent += `</body></html>`;
-
-      // SALVA TEMP HTML
-      const htmlPath = path.join(tempDir, `${id}-${Date.now()}.html`);
-      fs.writeFileSync(htmlPath, htmlContent);
-
-      // GERA PDF
-      const page = await browser.newPage();
-      const response = await page.goto(`file://${htmlPath}`, {
-        waitUntil: "networkidle0", // 💥 garante render completo
-      });
-
-      if (!response || !response.ok()) {
-        console.log("Erro ao carregar, pulando conversa", id);
-        continue;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 300)); // importantíssimo
-
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-      });
-
-      await page.close();
-      fs.unlinkSync(htmlPath);
-
-      if (Buffer.isBuffer(pdfBuffer) && pdfBuffer.length > 1000) {
-        archive.append(pdfBuffer, {
-          name: `${uf}/${cidade}/${year}/${month}/${day}/${fileName}`,
-        });
-      } else {
-        console.log("PDF inválido (vazio), pulando", id);
-      }
+    } finally {
+      await browser.close();
     }
-
-    await browser.close();
     await archive.finalize();
   } catch (err) {
     console.error("Erro exportando:", err);

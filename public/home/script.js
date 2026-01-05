@@ -22,7 +22,7 @@ window.onclick = function (event) {
 
 async function carregarInboxes() {
   try {
-    const response = await fetch('http://192.168.2.115:3000/inboxes');
+    const response = await fetch('http://localhost:3000/inboxes');
     const inboxes = await response.json();
     const inboxCheckboxesDiv = document.getElementById('inbox-checkboxes');
     inboxCheckboxesDiv.innerHTML = ''; // Limpa checkboxes existentes
@@ -98,7 +98,7 @@ async function buscarConversas() {
     }
 
     try {
-        const response = await fetch(`http://192.168.2.115:3000/relatorio?${queryParams.toString()}`, {
+        const response = await fetch(`http://localhost:3000/relatorio?${queryParams.toString()}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json"
@@ -613,7 +613,7 @@ function exportarTodasConversas() {
     }
 
     // Redireciona para a rota de exportação (ajuste o IP se necessário)
-    window.location.href = `http://192.168.2.115:3000/relatorio/exportar?${queryParams.toString()}`;
+    window.location.href = `http://localhost:3000/relatorio/exportar?${queryParams.toString()}`;
 }
 
 async function salvarPDF() {
@@ -638,7 +638,7 @@ async function salvarPDF() {
     const htmlContent = chatContainer.innerHTML;
 
     try {
-        const response = await fetch('http://192.168.2.115:3000/relatorio/pdf', {
+        const response = await fetch('http://localhost:3000/relatorio/pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
