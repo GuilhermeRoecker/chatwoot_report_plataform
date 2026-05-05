@@ -1,4 +1,8 @@
 /.env
 /node_modules
 .vscode/settings.json
+<<<<<<< HEAD
 /.venv
+=======
+/.venv
+>>>>>>> e4c3c69 (Adicionado .venv ao .gitignore)
